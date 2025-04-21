@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Guess 2/3 Game</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      max-width: 700px;
+      margin: auto;
+      background: #f9f9f9;
+    }
+
+    button {
+      padding: 10px 18px;
+      margin-top: 1rem;
+      margin-right: 10px;
+      font-weight: bold;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      background: #009688;
+      color: white;
+    }
+
+    button:hover {
+      background: #00796B;
+    }
+
+    #connectBtn {
+      background: #00695C;
+    }
+
+    #connectBtn:hover {
+      background: #004D40;
+    }
+
+    .player {
+      margin-bottom: 8px;
+    }
+
+    #status {
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🎮 Guess Two-Thirds Game</h1>
+
+  <div>
+    <button id="connectBtn" onclick="connectWallet()">🔌 Connect Wallet</button>
+    <button onclick="addOiiaNetwork()">➕ Add Oiia Network</button>
+    <div id="walletAddress">Wallet not connected</div>
+  </div>
+
+  <hr />
+
+  <div>
+    <strong>Current Round:</strong> <span id="gameId">-</span><br />
+    <strong>Players:</strong>
+    <div id="players">Loading...</div>
+  </div>
+
+  <hr />
+
+  <div>
+    <label for="amount">Enter amount (OIIA): </label>
+    <input type="number" id="amount" min="0.001" step="0.001" value="0.01" />
+    <button onclick="joinGame()">🕹️ Join Game</button>
+  </div>
+
+  <div id="status"></div>
+
+  <script>
+    const CONTRACT_ADDRESS = "0x6eb079c9d3005bd596e8a0e5065fa33c80aba8f1";
+    const RPC_URL = "https://rpc.oiia.network";
+    const CHAIN_ID_DEC = 20220915;
+    const CHAIN_ID_HEX = "0x1348BF3";
+
+    const ABI = [
+      "function gameId() view returns (uint256)",
+      "function players(uint256) view returns (address addr, uint256 amount)",
+      "function play() payable",
+      "function hasPlayed(address) view returns (bool)",
+      "event PlayerJoined(address indexed player, uint256 amount)",
+      "event GameEnded(uint256 indexed gameId, address winner, uint256 reward, uint256 guessTarget)"
+    ];
+
+    let provider, signer, contract;
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        alert("MetaMask not detected.");
+        return;
+      }
+
+      try {
+        provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = await provider.getSigner();
+        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+        const addr = await signer.getAddress();
+        document.getElementById("walletAddress").textContent = "Connected: " + addr;
+        document.getElementById("status").textContent = "✅ Wallet connected.";
+        await loadGameInfo();
+      } catch (err) {
+        console.error(err);
+        alert("Connection failed.");
+      }
+    }
+
+    async function addOiiaNetwork() {
+      if (!window.ethereum) {
+        alert("MetaMask not detected.");
+        return;
+      }
+
+      try {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: CHAIN_ID_HEX,
+            chainName: 'Oiia Network',
+            rpcUrls: [RPC_URL],
+            nativeCurrency: {
+              name: 'OIIA',
+              symbol: 'OIIA',
+              decimals: 18
+            },
+            blockExplorerUrls: ['https://explorer.oiia.network']
+          }]
+        });
+
+        document.getElementById("status").textContent = "✅ Oiia Network added.";
+      } catch (error) {
+        console.error(error);
+        alert("Failed to add network.");
+      }
+    }
+
+    async function loadGameInfo() {
+      document.getElementById("status").textContent = "🔄 Loading game info...";
+
+      try {
+        if (!contract) {
+          const readProvider = new ethers.JsonRpcProvider(RPC_URL);
+          contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, readProvider);
+        }
+
+        const gameId = await contract.gameId();
+        document.getElementById("gameId").textContent = gameId.toString();
+
+        let playersHTML = "";
+        for (let i = 0; ; i++) {
+          try {
+            const p = await contract.players(i);
+            playersHTML += `<div class="player">#${i + 1}: ${p.addr} — ${ethers.formatEther(p.amount)} OIIA</div>`;
+          } catch {
+            break;
+          }
+        }
+
+        document.getElementById("players").innerHTML = playersHTML || "No players yet.";
+        document.getElementById("status").textContent = "✅ Game data loaded.";
+      } catch (err) {
+        console.error(err);
+        document.getElementById("status").textContent = "❌ Failed to load game info.";
+      }
+    }
+
+    async function joinGame() {
+      if (!signer) {
+        alert("Please connect your wallet first.");
+        return;
+      }
+
+      const amount = document.getElementById("amount").value;
+      document.getElementById("status").textContent = "📤 Sending transaction...";
+
+      try {
+        const tx = await contract.play({ value: ethers.parseEther(amount) });
+        await tx.wait();
+        document.getElementById("status").textContent = "✅ Successfully joined!";
+        await loadGameInfo();
+      } catch (err) {
+        console.error(err);
+        document.getElementById("status").textContent = "❌ Transaction failed.";
+      }
+    }
+
+    // Auto-load on page load
+    window.addEventListener("load", async () => {
+      await loadGameInfo();
+
+      // Auto-connect if MetaMask is already connected
+      if (window.ethereum) {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length > 0) {
+          connectWallet(); // trigger auto connection and game info
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>
