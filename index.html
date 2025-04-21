@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>Guess 2/3 Game</title>
@@ -131,9 +132,9 @@
         await window.ethereum.request({
           method: 'wallet_addEthereumChain',
           params: [{
-            chainId: CHAIN_ID_HEX,
+            chainId: '0x1348BF3', // hex string is correct (don't use CHAIN_ID_HEX constant if it's a number or function)
             chainName: 'Oiia Network',
-            rpcUrls: [RPC_URL],
+            rpcUrls: ['https://rpc.oiia.network'],
             nativeCurrency: {
               name: 'OIIA',
               symbol: 'OIIA',
@@ -146,7 +147,8 @@
         document.getElementById("status").textContent = "✅ Oiia Network added.";
       } catch (error) {
         console.error(error);
-        alert("Failed to add network.");
+        document.getElementById("status").textContent = "❌ Failed to add network.";
+        alert("Failed to add Oiia Network. See console for details.");
       }
     }
 
@@ -239,4 +241,5 @@
     });
   </script>
 </body>
+
 </html>
