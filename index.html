@@ -128,31 +128,43 @@
         return;
       }
 
+      const chainId = '0x1348bf3'; // 20220915
+
       try {
         await window.ethereum.request({
-          method: 'wallet_addEthereumChain',
-          params: [
-            {
-              chainId: '0x1348bf3', // 20220915 in hex, lowercase is safer
-              chainName: 'Oiia Network',
-              rpcUrls: ['https://rpc.oiia.network'],
-              nativeCurrency: {
-                name: 'OIIA',
-                symbol: 'OIIA',
-                decimals: 18
-              },
-              blockExplorerUrls: ['https://explorer.oiia.network']
-            }
-          ]
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId }],
         });
 
-        document.getElementById("status").textContent = "✅ Oiia Network added.";
-      } catch (error) {
-        console.error('Failed to add network:', error);
-        alert("❌ Failed to add Oiia Network.\n\nDetails:\n" + (error.message || error));
+        document.getElementById("status").textContent = "✅ Switched to Oiia Network.";
+      } catch (switchError) {
+        if (switchError.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId,
+                chainName: 'Oiia Network',
+                rpcUrls: ['https://rpc.oiia.network'],
+                nativeCurrency: {
+                  name: 'OIIA',
+                  symbol: 'OIIA',
+                  decimals: 18
+                },
+                blockExplorerUrls: ['https://explorer.oiia.network']
+              }]
+            });
+            document.getElementById("status").textContent = "✅ Oiia Network added and selected.";
+          } catch (addError) {
+            console.error("Add network failed:", addError);
+            alert("❌ Failed to add Oiia Network.\n\n" + addError.message || addError);
+          }
+        } else {
+          console.error("Switch network failed:", switchError);
+          alert("❌ Failed to switch to Oiia Network.\n\n" + switchError.message || switchError);
+        }
       }
     }
-
 
     async function loadGameInfo() {
       document.getElementById("status").textContent = "🔄 Loading game info...";
