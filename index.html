@@ -131,26 +131,28 @@
       try {
         await window.ethereum.request({
           method: 'wallet_addEthereumChain',
-          params: [{
-            chainId: '0x1348BF3', // hex string is correct (don't use CHAIN_ID_HEX constant if it's a number or function)
-            chainName: 'Oiia Network',
-            rpcUrls: ['https://rpc.oiia.network'],
-            nativeCurrency: {
-              name: 'OIIA',
-              symbol: 'OIIA',
-              decimals: 18
-            },
-            blockExplorerUrls: ['https://explorer.oiia.network']
-          }]
+          params: [
+            {
+              chainId: '0x1348bf3', // 20220915 in hex, lowercase is safer
+              chainName: 'Oiia Network',
+              rpcUrls: ['https://rpc.oiia.network'],
+              nativeCurrency: {
+                name: 'OIIA',
+                symbol: 'OIIA',
+                decimals: 18
+              },
+              blockExplorerUrls: ['https://explorer.oiia.network']
+            }
+          ]
         });
 
         document.getElementById("status").textContent = "✅ Oiia Network added.";
       } catch (error) {
-        console.error(error);
-        document.getElementById("status").textContent = "❌ Failed to add network.";
-        alert("Failed to add Oiia Network. See console for details.");
+        console.error('Failed to add network:', error);
+        alert("❌ Failed to add Oiia Network.\n\nDetails:\n" + (error.message || error));
       }
     }
+
 
     async function loadGameInfo() {
       document.getElementById("status").textContent = "🔄 Loading game info...";
