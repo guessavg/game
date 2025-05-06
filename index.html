@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
-  <title>Guess 2/3 Game</title>
+  <title>Guess 2 / 3 Game — Base Network</title>
+
+  <!-- Ethers v6 UMD build -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
+
   <style>
+    /* Simple responsive layout */
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       padding: 2rem;
@@ -31,21 +34,12 @@
       color: white;
     }
 
-    button:hover {
-      background: #00796B;
-    }
+    button:hover { background: #00796B; }
 
-    #connectBtn {
-      background: #222;
-    }
+    #connectBtn       { background: #222; }
+    #connectBtn:hover { background: #444; }
 
-    #connectBtn:hover {
-      background: #444;
-    }
-
-    .player {
-      margin-bottom: 8px;
-    }
+    .player { margin-bottom: 8px; }
 
     #players {
       padding: 0.5rem 0;
@@ -54,17 +48,14 @@
       margin-top: 0.5rem;
     }
 
-    #status {
-      margin-top: 1rem;
-      font-weight: bold;
-    }
+    #status { margin-top: 1rem; font-weight: bold; }
 
     .info-block {
       margin-bottom: 1rem;
       padding: 1rem;
       background-color: white;
       border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
     input[type="number"] {
@@ -78,39 +69,53 @@
 </head>
 
 <body>
-  <h1>🎮 Guess Two-Thirds Game</h1>
+  <h1>🎮 Guess Two‑Thirds Game (on Base)</h1>
 
+  <!-- Wallet & network -->
   <div class="info-block">
-    <button id="connectBtn" onclick="connectWallet()">🔌 Connect Wallet</button>
-    <button onclick="addOiiaNetwork()">➕ Add Oiia Network</button>
-    <div id="walletAddress">Wallet not connected</div>
+    <button id="connectBtn" onclick="connectWallet()">🔌 Connect Wallet</button>
+    <button onclick="addBaseNetwork()">➕ Add Base Network</button>
+    <div id="walletAddress">Wallet not connected</div>
   </div>
 
+  <!-- Live round data -->
   <div class="info-block">
-    <strong>Current Round:</strong> <span id="gameId">-</span><br />
+    <strong>Current Round:</strong> <span id="gameId">-</span><br />
     <strong>Players:</strong>
-    <div id="players">Loading...</div>
+    <div id="players">Loading…</div>
   </div>
 
+  <!-- Last result & contract balance -->
   <div class="info-block">
-    <strong>Contract Balance:</strong> <span id="contractBalance">-</span> OIIA<br />
-    <strong>Last Winner:</strong> <span id="lastWinner">-</span><br />
-    <strong>Last Reward:</strong> <span id="lastReward">-</span> OIIA<br />
+    <strong>Contract Balance:</strong> <span id="contractBalance">-</span> ETH<br />
+    <strong>Last Winner:</strong> <span id="lastWinner">-</span><br />
+    <strong>Last Reward:</strong> <span id="lastReward">-</span> ETH<br />
   </div>
 
+  <!-- Join the game -->
   <div class="info-block">
-    <label for="amount">Enter amount (OIIA): </label>
+    <label for="amount">Enter amount (ETH): </label>
     <input type="number" id="amount" min="0.001" step="0.001" value="0.01" />
-    <button id="joinBtn" onclick="joinGame()" disabled>🕹️ Join Game</button>
+    <button id="joinBtn" onclick="joinGame()" disabled>🕹️ Join Game</button>
   </div>
 
   <div id="status"></div>
 
   <script>
-    const CONTRACT_ADDRESS = "0x6eb079c9d3005bd596e8a0e5065fa33c80aba8f1";
-    const RPC_URL = "https://rpc.oiia.network";
-    const CHAIN_ID_HEX = "0x1348BF3";
+    /* ------------------------------------------------------------------ */
+    /*             1.  Contract / network configuration                   */
+    /* ------------------------------------------------------------------ */
 
+    // Deployed contract on Base mainnet
+    const CONTRACT_ADDRESS = "0x4BbeE9F876ff56832E724DC9a7bD06538C8868D2";
+
+    // Public Base RPC (read‑only fallback)
+    const RPC_URL = "https://base-rpc.publicnode.com";
+
+    // Base chain ID in hex (8453 decimals)
+    const CHAIN_ID_HEX = "0x2105";
+
+    /* Contract ABI (minimal) */
     const ABI = [
       "function gameId() view returns (uint256)",
       "function players(uint256) view returns (address addr, uint256 amount)",
@@ -122,104 +127,110 @@
 
     let provider, signer, contract;
 
+    /* ------------------------------------------------------------------ */
+    /*                       2.  Wallet helpers                           */
+    /* ------------------------------------------------------------------ */
+
     async function connectWallet() {
       if (!window.ethereum) {
-        alert("MetaMask not detected.");
+        alert("MetaMask (or another provider) not detected.");
         return;
       }
 
       try {
         provider = new ethers.BrowserProvider(window.ethereum);
+        // Request account access
         await provider.send("eth_requestAccounts", []);
-        signer = await provider.getSigner();
+        signer   = await provider.getSigner();
         contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
 
         const addr = await signer.getAddress();
-        document.getElementById("walletAddress").textContent = "Connected: " + addr;
-        document.getElementById("status").textContent = "✅ Wallet connected.";
-        document.getElementById("joinBtn").disabled = false;
+        document.getElementById("walletAddress").textContent = "Connected: " + addr;
+        document.getElementById("status").textContent        = "✅ Wallet connected.";
+        document.getElementById("joinBtn").disabled          = false;
 
         await loadGameInfo();
       } catch (err) {
         console.error(err);
-        alert("Connection failed.");
+        alert("Connection failed. Check console for details.");
       }
     }
 
-    async function addOiiaNetwork() {
+    /* Add or switch to the Base network in MetaMask */
+    async function addBaseNetwork() {
       if (!window.ethereum) {
         alert("MetaMask not detected.");
         return;
       }
 
-      const chainId = '0x1348bf3'; // 20220915
-
       try {
+        // Try switching first
         await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId }],
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: CHAIN_ID_HEX }],
         });
-
-        document.getElementById("status").textContent = "✅ Switched to Oiia Network.";
+        document.getElementById("status").textContent = "✅ Switched to Base.";
       } catch (switchError) {
+        // Unknown chain – offer to add it
         if (switchError.code === 4902) {
           try {
             await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
+              method: "wallet_addEthereumChain",
               params: [{
-                chainId,
-                chainName: 'Oiia Network',
-                rpcUrls: ['https://rpc.oiia.network'],
-                nativeCurrency: {
-                  name: 'OIIA',
-                  symbol: 'OIIA',
-                  decimals: 18
-                },
-                blockExplorerUrls: ['https://explorer.oiia.network']
+                chainId: CHAIN_ID_HEX,
+                chainName: "Base",
+                rpcUrls: [RPC_URL],
+                nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+                blockExplorerUrls: ["https://basescan.org"]
               }]
             });
-            document.getElementById("status").textContent = "✅ Oiia Network added and selected.";
+            document.getElementById("status").textContent = "✅ Base added and selected.";
           } catch (addError) {
             console.error("Add network failed:", addError);
-            alert("❌ Failed to add Oiia Network.\n\n" + addError.message || addError);
+            alert("❌ Failed to add Base network.\n\n" + (addError.message || addError));
           }
         } else {
           console.error("Switch network failed:", switchError);
-          alert("❌ Failed to switch to Oiia Network.\n\n" + switchError.message || switchError);
+          alert("❌ Failed to switch to Base.\n\n" + (switchError.message || switchError));
         }
       }
     }
 
+    /* ------------------------------------------------------------------ */
+    /*                     3.  Load on‑chain data                         */
+    /* ------------------------------------------------------------------ */
+
     async function loadGameInfo() {
-      document.getElementById("status").textContent = "🔄 Loading game info...";
+      document.getElementById("status").textContent = "🔄 Loading game info…";
 
       try {
-        if (!provider) {
-          provider = new ethers.JsonRpcProvider(RPC_URL);
-        }
-        if (!contract) {
-          contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
-        }
+        // Use public RPC if no provider yet
+        if (!provider) provider = new ethers.JsonRpcProvider(RPC_URL);
+        if (!contract) contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
 
+        /* Current round ID */
         const gameId = await contract.gameId();
         document.getElementById("gameId").textContent = gameId.toString();
 
+        /* List all players (until out‑of‑range revert) */
         let playersHTML = "";
-        for (let i = 0; ; i++) {
+        for (let i = 0; ; ++i) {
           try {
             const p = await contract.players(i);
-            playersHTML += `<div class="player">#${i + 1}: ${p.addr} — ${ethers.formatEther(p.amount)} OIIA</div>`;
+            playersHTML += `<div class="player">#${i + 1}: ${p.addr} — ${ethers.formatEther(p.amount)} ETH</div>`;
           } catch {
-            break;
+            break; // reached the end of the dynamic array
           }
         }
         document.getElementById("players").innerHTML = playersHTML || "No players yet.";
 
+        /* Contract balance */
         const balance = await provider.getBalance(CONTRACT_ADDRESS);
         document.getElementById("contractBalance").textContent = ethers.formatEther(balance);
 
+        /* Last GameEnded event */
         const topic = ethers.id("GameEnded(uint256,address,uint256,uint256)");
-        const logs = await provider.getLogs({
+        const logs  = await provider.getLogs({
           address: CONTRACT_ADDRESS,
           fromBlock: "earliest",
           toBlock: "latest",
@@ -228,7 +239,7 @@
 
         if (logs.length > 0) {
           const lastLog = logs[logs.length - 1];
-          const parsed = contract.interface.parseLog(lastLog);
+          const parsed  = contract.interface.parseLog(lastLog);
           document.getElementById("lastWinner").textContent = parsed.args.winner;
           document.getElementById("lastReward").textContent = ethers.formatEther(parsed.args.reward);
         } else {
@@ -236,12 +247,16 @@
           document.getElementById("lastReward").textContent = "-";
         }
 
-        document.getElementById("status").textContent = "✅ Game data loaded.";
+        document.getElementById("status").textContent = "✅ Game data loaded.";
       } catch (err) {
         console.error(err);
-        document.getElementById("status").textContent = "❌ Failed to load game info.";
+        document.getElementById("status").textContent = "❌ Failed to load game info.";
       }
     }
+
+    /* ------------------------------------------------------------------ */
+    /*                        4.  Play the game                            */
+    /* ------------------------------------------------------------------ */
 
     async function joinGame() {
       if (!signer) {
@@ -249,35 +264,37 @@
         return;
       }
 
-      const amount = document.getElementById("amount").value;
+      const amount  = document.getElementById("amount").value;
       const joinBtn = document.getElementById("joinBtn");
       joinBtn.disabled = true;
-      document.getElementById("status").textContent = "📤 Sending transaction...";
+      document.getElementById("status").textContent = "📤 Sending transaction…";
 
       try {
         const tx = await contract.play({ value: ethers.parseEther(amount) });
         await tx.wait();
-        document.getElementById("status").textContent = "✅ Successfully joined!";
-        await loadGameInfo();
+        document.getElementById("status").textContent = "✅ Successfully joined!";
+        await loadGameInfo(); // refresh the UI
       } catch (err) {
         console.error(err);
-        document.getElementById("status").textContent = "❌ Transaction failed.";
+        document.getElementById("status").textContent = "❌ Transaction failed.";
       }
 
       joinBtn.disabled = false;
     }
 
+    /* ------------------------------------------------------------------ */
+    /*                5.  Auto‑load info on page load                      */
+    /* ------------------------------------------------------------------ */
+
     window.addEventListener("load", async () => {
       await loadGameInfo();
 
+      /* Auto‑connect if MetaMask is already authorised */
       if (window.ethereum) {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (accounts.length > 0) {
-          await connectWallet();
-        }
+        const accounts = await window.ethereum.request({ method: "eth_accounts" });
+        if (accounts.length > 0) await connectWallet();
       }
     });
   </script>
 </body>
-
 </html>
