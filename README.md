@@ -1,49 +1,65 @@
-# 🎮 Guess Two-Thirds Game (Web3 dApp)
+# 🎮 Guess Two‑Thirds Game (Web3 dApp on **Base**)
 
-This project is a decentralized game based on the classic **"Guess 2/3 of the Average"** game theory experiment. It is built as a Web3 dApp, allowing players to participate on-chain by sending OIIA tokens. The closest player to 2/3 of the average wins the prize pool.
+This project is a decentralized version of the classic **“Guess 2 / 3 of the Average”** game‑theory experiment.  
+Players participate **on‑chain** by sending ETH on **Base**; the contribution that lands closest to **2 / 3 of the average** wins the prize pool (minus a 1 % fee).
 
-## 🌐 Live App
+---
 
-You can try the game live at:
+## 🌐 Live App
 
-**https://guessavg.github.io/**
+Play it here:
 
-## 📦 Features
+**https://guessavg.github.io/game/**   <!-- update if you host under a new domain -->
 
-- Connect with MetaMask
-- One-click add/switch to Oiia Network
-- Join game by sending any amount of OIIA
-- View:
-  - Current round
-  - List of players and their amounts
-  - Contract balance
-  - Last winner and reward
-- Uses `ethers.js` v6 for blockchain interaction
+---
 
-## ⚙️ How It Works
+## 📦 Features
 
-- Users send OIIA to join the current round.
-- Once the round ends (according to random logic in the contract), the player whose value is closest to **2/3 of the average** wins.
-- Winner receives the total pool minus a 1% fee.
-- The UI displays current round, players, balance, and last winner details.
+- MetaMask (or any EIP‑1193 wallet) connect  
+- One‑click **add / switch to Base network**  
+- Join a round by sending **any amount of ETH**  
+- Real‑time UI showing  
+  - Current round ID  
+  - Player list & stakes  
+  - Contract balance  
+  - Last winner & reward  
+- Built with **ethers.js v6**
 
-## 🔧 Smart Contract Info
+---
 
-- **Contract Address:** `0x6eb079c9d3005bd596e8a0e5065fa33c80aba8f1`
-- **Network RPC:** `https://rpc.oiia.network`
-- **Chain ID:** `20220915 (0x1348BF3)`
-- **Block Explorer:** [https://explorer.oiia.network](https://explorer.oiia.network)
+## ⚙️ How It Works
 
-## 🧪 Technologies Used
+1. Users send ETH to the contract’s `play()` function.  
+2. A pseudo‑random stop‑condition (parametrised at deployment) decides when the round ends.  
+3. The stake closest to **2 / 3 × average** wins; ties are broken by earliest entry.  
+4. Winner receives the pool minus a 1 % fee to the owner.  
+5. Front‑end polls on‑chain data and past `GameEnded` events for live updates.
 
-- HTML / JavaScript
-- ethers.js v6
-- MetaMask
-- Hosted on GitHub Pages
+---
 
-## 📄 Sample Contract ABI (Used in the App)
+## 🔧 Smart Contract Info
 
-```
+| Item | Value |
+|------|-------|
+| **Contract address** | `0x4BbeE9F876ff56832E724DC9a7bD06538C8868D2` |
+| **Network RPC** | `https://base-rpc.publicnode.com` |
+| **Chain ID** | 8453 (`0x2105`) |
+| **Block explorer** | <https://basescan.org> |
+
+---
+
+## 🧪 Tech Stack
+
+- Vanilla **HTML / JavaScript**  
+- **ethers.js** v6  
+- **MetaMask** (EIP‑1193 provider)  
+- Static hosting (e.g. GitHub Pages)
+
+---
+
+## 📄 Contract ABI (used in front‑end)
+
+```json
 [
   "function gameId() view returns (uint256)",
   "function players(uint256) view returns (address addr, uint256 amount)",
